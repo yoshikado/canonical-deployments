@@ -1,6 +1,3 @@
-# Copyright 2026 Canonical Ltd.
-# See LICENSE file for licensing details.
-
 variable "cloud_name" {
   description = "name of cloud"
   type        = string

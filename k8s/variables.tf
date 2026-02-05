@@ -1,6 +1,3 @@
-# Copyright 2026 Canonical Ltd.
-# See LICENSE file for licensing details.
-
 variable "model_name" {
   description = "name of model to deploy onto"
   type        = string

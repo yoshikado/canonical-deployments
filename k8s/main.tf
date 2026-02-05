@@ -1,6 +1,3 @@
-# Copyright 2026 Canonical Ltd.
-# See LICENSE file for licensing details.
-
 resource "juju_model" "k8s" {
   name = var.model_name
 }
@@ -10,13 +7,6 @@ module "k8s" {
   app_name = var.k8s_config.app_name
   channel  = var.k8s_config.channel
   config = merge(
-    # (
-    #   length(keys(var.k8s_worker_config.config)) > 0 ?
-    #   # if there are workers, control-planes are tainted with NoSchedule
-    #   { "bootstrap-node-taints" : "node-role.kubernetes.io/control-plane:NoSchedule" } :
-    #   # if there are no-workers, control-planes cannot be tainted
-    #   {}
-    # ),
     var.k8s_config.config,
   )
   constraints = var.k8s_config.constraints
@@ -32,13 +22,6 @@ module "k8s_worker" {
   app_name = var.k8s_worker_config.app_name
   channel  = var.k8s_worker_config.channel
   config = merge(
-    # (
-    #   length(keys(var.k8s_worker_config.config)) > 0 ?
-    #   # if there are workers, control-planes are tainted with NoSchedule
-    #   { "bootstrap-node-taints" : "node-role.kubernetes.io/control-plane:NoSchedule" } :
-    #   # if there are no-workers, control-planes cannot be tainted
-    #   {}
-    # ),
     var.k8s_worker_config.config,
   )
   constraints = var.k8s_worker_config.constraints

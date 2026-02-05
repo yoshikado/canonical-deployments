@@ -1,6 +1,3 @@
-# Copyright 2026 Canonical Ltd.
-# See LICENSE file for licensing details.
-
 resource "juju_integration" "k8s_cluster_integration" {
   model    = juju_model.k8s.name
 

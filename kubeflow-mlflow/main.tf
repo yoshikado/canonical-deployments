@@ -1,6 +1,3 @@
-# Copyright 2026 Canonical Ltd.
-# See LICENSE file for licensing details.
-
 resource "juju_model" "kubeflow" {
   name = var.model_name
   credential = var.cloud_name
