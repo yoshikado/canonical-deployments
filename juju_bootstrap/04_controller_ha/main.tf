@@ -1,15 +1,4 @@
-# Read controller connection info & credentials from Juju client configuration
-# (automatically created during bootstrap in 03_bootstrap), with fallbacks to variables.
-locals {
-  juju_controllers_file = pathexpand("~/.local/share/juju/controllers.yaml")
-  juju_accounts_file    = pathexpand("~/.local/share/juju/accounts.yaml")
-
-  ca_cert       = var.controller_ca_cert != "" ? var.controller_ca_cert : try(yamldecode(file(local.juju_controllers_file)).controllers[var.juju_controller_name]["ca-cert"], "")
-  password      = var.controller_password != "" ? var.controller_password : try(yamldecode(file(local.juju_accounts_file)).controllers[var.juju_controller_name]["password"], "")
-  api_addresses = length(var.controller_api_addresses) > 0 ? var.controller_api_addresses : try(yamldecode(file(local.juju_controllers_file)).controllers[var.juju_controller_name]["api-endpoints"], ["192.168.151.201:17070"])
-}
-
-# 1. Prepare HA nodes (machines 1 and 2) with static IPs
+# Prepare HA nodes (machines 1 and 2) with static IPs and enable HA on the controller
 # Since MicroCloud bridge network has no DHCP, new controller VMs must have
 # static IPs configured via Netplan before Juju agent can connect to the controller.
 resource "terraform_data" "prepare_ha_nodes" {
@@ -25,6 +14,8 @@ resource "terraform_data" "prepare_ha_nodes" {
     node3_zone        = var.node3_zone
     node3_ip_cidr     = var.node3_ip_cidr
     node3_constraints = var.node3_constraints
+    ha_units          = var.ha_units
+    ha_to             = join(",", var.ha_to)
   }
 
   provisioner "local-exec" {
@@ -40,27 +31,9 @@ resource "terraform_data" "prepare_ha_nodes" {
       NODE2_IP_CIDR        = var.node2_ip_cidr
       NODE3_CONSTRAINTS    = var.node3_constraints
       NODE3_IP_CIDR        = var.node3_ip_cidr
+      HA_UNITS             = var.ha_units
+      HA_TO                = join(",", var.ha_to)
     }
-  }
-
-  lifecycle {
-    action_trigger {
-      events  = [after_create]
-      actions = [action.juju_enable_ha.controller_ha]
-    }
-  }
-}
-
-# 2. Enable HA using the Juju Terraform Provider action
-action "juju_enable_ha" "controller_ha" {
-  config {
-    api_addresses = local.api_addresses
-    ca_cert       = local.ca_cert
-    username      = var.controller_username
-    password      = local.password
-    units         = var.ha_units
-    to            = var.ha_to
-    constraints   = var.ha_constraints
   }
 }
 

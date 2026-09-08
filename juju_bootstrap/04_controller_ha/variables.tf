@@ -64,32 +64,7 @@ variable "node3_constraints" {
   default     = "cores=2 mem=4G root-disk=20G root-disk-source=remote virt-type=virtual-machine zones=vm03"
 }
 
-# --- Juju Action Credentials and HA Configuration ---
-
-variable "controller_username" {
-  description = "Admin username for the target controller."
-  type        = string
-  default     = "admin"
-}
-
-variable "controller_password" {
-  description = "Admin password for the target controller. If empty, automatically read from ~/.local/share/juju/accounts.yaml."
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "controller_ca_cert" {
-  description = "CA certificate of the target controller. If empty, automatically read from ~/.local/share/juju/controllers.yaml."
-  type        = string
-  default     = ""
-}
-
-variable "controller_api_addresses" {
-  description = "API addresses of the target controller. If empty, automatically read from ~/.local/share/juju/controllers.yaml (or defaults to node 1 endpoint)."
-  type        = list(string)
-  default     = []
-}
+# --- Juju Controller HA Configuration ---
 
 variable "ha_units" {
   description = "Desired number of controller units (must be odd and >= 3)."

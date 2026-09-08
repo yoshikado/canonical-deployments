@@ -26,6 +26,9 @@ NODE2_IP_CIDR="${NODE2_IP_CIDR:-192.168.151.202/24}"
 NODE3_CONSTRAINTS="${NODE3_CONSTRAINTS:-cores=2 mem=4G root-disk=20G root-disk-source=remote virt-type=virtual-machine zones=vm03}"
 NODE3_IP_CIDR="${NODE3_IP_CIDR:-192.168.151.203/24}"
 
+HA_UNITS="${HA_UNITS:-3}"
+HA_TO="${HA_TO:-}"
+
 # Format nameservers into YAML list entries
 format_nameservers_yaml() {
   local ns_yaml=""
@@ -141,6 +144,30 @@ wait_for_machine_started() {
   log "Warning: Machine ${mid} agent status is '${a_status:-unknown}'."
 }
 
+# Wait for controller units to report 'active' status in Juju
+wait_for_ha_ready() {
+  local target_units="$1"
+  local max_attempts=180 # 6 minutes max
+  local attempt=0
+
+  log "Waiting for at least ${target_units} controller units to report 'active'..."
+  while [ $attempt -lt $max_attempts ]; do
+    local status_json
+    status_json=$(juju status -m controller --format json 2>/dev/null || echo "{}")
+    local active_count
+    active_count=$(echo "$status_json" | jq -r '[.applications["controller"].units[]? | select(.["workload-status"].current == "active")] | length' 2>/dev/null || echo "0")
+
+    if [ "$active_count" -ge "$target_units" ]; then
+      log "HA active: ${active_count} controller units are in 'active' status."
+      return 0
+    fi
+    sleep 3
+    attempt=$((attempt + 1))
+  done
+
+  log "Warning: Timed out waiting for ${target_units} active controller units. Checking overall status..."
+}
+
 # -------------------------------------------------------------
 # MAIN WORKFLOW
 # -------------------------------------------------------------
@@ -208,7 +235,17 @@ configure_netplan "$vm_2_name" "$NODE3_IP_CIDR" "$ns_yaml"
 wait_for_machine_started "$m1_id"
 wait_for_machine_started "$m2_id"
 
+# 8. Enable HA on the controller
+if [ -z "$HA_TO" ]; then
+  HA_TO="${m1_id},${m2_id}"
+fi
+
+log "Enabling HA on controller '${JUJU_CONTROLLER_NAME}' with ${HA_UNITS} units (--to ${HA_TO})..."
+juju enable-ha -c "${JUJU_CONTROLLER_NAME}" -n "${HA_UNITS}" --to "${HA_TO}"
+
+# 9. Wait for HA controller units to be active
+wait_for_ha_ready "$HA_UNITS"
+
 log "========================================================="
-log "Nodes 2 and 3 prepared with static IPs and started in Juju."
-log "Ready for action 'juju_enable_ha' invocation."
+log "HA controller enabled successfully on '${JUJU_CONTROLLER_NAME}'!"
 log "========================================================="
